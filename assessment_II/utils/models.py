@@ -40,7 +40,6 @@ class BaseTSP:
         Optimized tour after local search.
         """
         stable, best = False, self.heuristic(self.m, tour)
-        lengths, tours = [best], [tour]
         while not stable:
             stable = True
             for i in range(start_node, self.n):
@@ -53,10 +52,8 @@ class BaseTSP:
                     length_candidate = self.heuristic(self.m, candidate)
                     if best > length_candidate:
                         tour, best = candidate, length_candidate
-                        tours.append(tour)
-                        lengths.append(best)
                         stable = False
-        return tours[-1]
+        return tour
 
     def next_with_threshold(self, **kwargs):
         """Choose the next node based on threshold."""
@@ -120,7 +117,7 @@ class BaseTSP:
 
 
 
-class TraditionalTSP(BaseTSP):
+class MyTSP(BaseTSP):
     def __init__(self, heuristic, k_head = 4, n_head = 5):
         """
         Parameters:
@@ -162,13 +159,15 @@ class EvolutionaryTSP(BaseTSP):
                     n_epoch=100,
                     tournament_size=4,
                     mutation_rate=0.5,
-                    crossover_rate=0.9):
+                    crossover_rate=0.9,
+                    is_local_search=True):
         super().__init__(heuristic)
         self.n_population = n_population
         self.n_epoch = n_epoch
         self.tournament_size = tournament_size
         self.mutation_rate = mutation_rate
         self.crossover_rate = crossover_rate
+        self.is_local_search = is_local_search
 
     def initialize(self):
         """
@@ -278,12 +277,14 @@ class EvolutionaryTSP(BaseTSP):
             if epoch % 10 == 0:
                 print(f"epoch {epoch}:", sorted(population)[0][0])
 
-        return sorted(population)[0]
+        result = min(population)
+        if self.is_local_search: result = [self.heuristic(self.m, result[1]), result[1]]
+        return result
 
 
 class AntColonyTSP(BaseTSP):
     def __init__(self, heuristic, n_ant=50, n_epoch=100, alpha=1.0, beta=1.0,
-                        rho=0.5, del_tau=1.0, k=2, is_local_search=False):
+                        rho=0.5, del_tau=1.0, k=2, is_local_search=True):
         """
         Initialize the Ant Colony Optimization for TSP.
 
@@ -371,11 +372,13 @@ class AntColonyTSP(BaseTSP):
                 init_tour = init_tour + [next]
                 tour = self.search_path(fnext=self.next_with_pheromones, k=self.n+2,
                                 init_tour=init_tour, pheromones=pheromones)
-                if self.is_local_search: tour=self.local_search(tour=tour, start_node=self.k+1)
+                if tour[-1] != self.n+1: continue
                 elitist_ants.append([self.heuristic(self.m, tour), tour])
 
             # Update elite pheromones
             elitist = min(elitist_ants)
+            if self.is_local_search: elitist=self.local_search(tour=elitist[1], start_node=self.k+1)
+            elitist = [self.heuristic(self.m, elitist), elitist]
             path = elitist[1]
             for i in range(self.n+1):
                 cur, next = path[i], path[i + 1]
