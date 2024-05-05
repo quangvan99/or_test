@@ -58,7 +58,7 @@ def distance_to_probability(distances):
     probabilities = exp_distances / np.sum(exp_distances)
     return probabilities
 
-def create_weight_matrix(m):
+def create_weighted_matrix(m):
     m_discount = m.copy()
     n = len(m) - 2
     for i in range(n+2):
