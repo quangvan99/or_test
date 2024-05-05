@@ -31,7 +31,7 @@ if __name__ == "__main__":
     # (for solve atsp)
     methods = [MyTSP, EvolutionaryTSP, AntColonyTSP]
     otp_for = [calc_distance, calc_custom]
-    method, f_heuristic = methods[0], otp_for[1]
+    method, f_heuristic = methods[2], otp_for[1]
     print("---", method.__name__, "---")
     for i in [20, 30, 40, 50, 60]:
         file=f"input/I{i}.csv"
@@ -40,4 +40,3 @@ if __name__ == "__main__":
         t2 = time.time()
         print(f"Time execute {file}:", (t2-t1)/5)
         print(f"Best solution of {file}:", min(bests))
-        print("Time excu")
