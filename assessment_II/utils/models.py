@@ -1,7 +1,8 @@
-from utils.common import create_matrix_csv, calc_distance
+from utils.common import create_matrix_csv, calc_distance, distance_to_probability
 from collections import defaultdict
 import numpy as np
-from random import choices, randint, random, choice
+from random import choices, randint, random, choice, seed
+seed(1111)
 
 class BaseTSP:
     def __init__(self, heuristic=None):
@@ -20,12 +21,12 @@ class BaseTSP:
     def get_threshold(self, m, n_population=None):
         """Calculate thresholds based on distance matrix for population initialization"""
         dist_non_zeros = m[m > 0]
-        nbin = len(m)
+        nbin = int(len(m)*0.7)
         counts, values = np.histogram(dist_non_zeros, bins=nbin)
         j_max = np.argmax(counts)
-        j_low, j_up = 0, j_max+(nbin-j_max)//4
+        j_low, j_up = 0, j_max+(nbin-j_max)//3
         if n_population is None: n_population = j_up - j_low
-        thresholds = [threshold for threshold in np.linspace(values[j_up], values[j_low], n_population)]
+        thresholds = [threshold for threshold in np.linspace(values[j_low], values[j_up], n_population)]
         return thresholds
 
     def local_search(self, tour, start_node=4):
@@ -66,6 +67,18 @@ class BaseTSP:
         tour.append(next)
         return next, tour
 
+    def next_with_prob_threshold(self, **kwargs):
+        """Choose the next node based on threshold."""
+        cur, threshold, nexts, tour  = kwargs['cur'], kwargs['threshold'], kwargs['nexts'], kwargs['tour']
+        costs = np.abs(self.m[cur, nexts] - threshold)
+        idxs = np.argsort(costs)[:3]
+        distances = costs[idxs]
+        probs = distance_to_probability(distances)
+        j_min = choices(idxs, weights=probs)[0]
+        next = nexts[j_min]
+        tour.append(next)
+        return next, tour
+
 
     def next_with_heuristic(self, **kwargs):
         """Select the next node based on cost."""
@@ -100,6 +113,7 @@ class BaseTSP:
             nexts = [next for next in nexts
                     if (next not in tour and next != self.n+1 and next not in forbidden[_k])
                     or (len(tour) == self.n+1 and next == self.n+1)]
+
             # If there are no valid neighbors
             if len(nexts) <= 0:
                 cur = tour[-2] # Move back to the previous node
@@ -134,10 +148,9 @@ class MyTSP(BaseTSP):
         Returns:
         - List of heads (list): List of initial tour heads.
         """
-        # the number of initial vertices traversed
-        self.k_head = int(self.n*self.k_percent)
+        self.k_head = int(self.n*self.k_percent) # the number of initial vertices traversed
         thresholds = self.get_threshold(self.m)
-        heads = [self.search_path(fnext=self.next_with_threshold, k=self.k_head,
+        heads = [self.search_path(fnext=self.next_with_prob_threshold, k=self.k_head,
                                     init_tour=[0], threshold=t) for t in thresholds]
         heads = list(set(tuple(head) for head in heads))
         return heads
@@ -281,7 +294,7 @@ class EvolutionaryTSP(BaseTSP):
 
 class AntColonyTSP(BaseTSP):
     def __init__(self, heuristic, n_ant=50, n_epoch=100, alpha=1.0, beta=1.0,
-                        rho=0.5, del_tau=1.0, k=2, is_local_search=False):
+                        rho=0.5, del_tau=1.0, k=2, is_local_search=True):
         """
         Initialize the Ant Colony Optimization for TSP.
 

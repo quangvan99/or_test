@@ -6,6 +6,7 @@
 
 1. **Tài liệu báo cáo**: pdf/report.pdf
 2. **Code**: assessment_I, assessment_II
+3. **Ghi lại kết quả đường đi**: log.txt
 
 ## Liên Hệ
 

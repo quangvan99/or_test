@@ -52,8 +52,15 @@ def calc_distance(m, tour):
     total_distance = np.sum(dists)
     return total_distance
 
-def create_weight_matrix(m, n):
+def distance_to_probability(distances):
+    inverse_distances = 1/(distances+1e-10)
+    exp_distances = np.exp(-inverse_distances)
+    probabilities = exp_distances / np.sum(exp_distances)
+    return probabilities
+
+def create_weight_matrix(m):
     m_discount = m.copy()
+    n = len(m) - 2
     for i in range(n+2):
         for j in range(n+2):
             if m_discount[i][j] == 0:
