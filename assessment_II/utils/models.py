@@ -17,13 +17,15 @@ class BaseTSP:
         self.m = create_matrix_csv(f) if isinstance(f, str) else f
         self.n = len(self.m) - 2
 
-    def get_threshold(self, m, n_population):
+    def get_threshold(self, m, n_population=None):
         """Calculate thresholds based on distance matrix for population initialization"""
         dist_non_zeros = m[m > 0]
-        bins = np.histogram_bin_edges(dist_non_zeros, bins='auto')
-        counts, values = np.histogram(dist_non_zeros, bins=bins)
+        nbin = len(m)
+        counts, values = np.histogram(dist_non_zeros, bins=nbin)
         j_max = np.argmax(counts)
-        thresholds = [threshold for threshold in np.linspace(values[j_max-3], values[j_max+3], n_population)]
+        j_low, j_up = 0, j_max+(nbin-j_max)//4
+        if n_population is None: n_population = j_up - j_low
+        thresholds = [threshold for threshold in np.linspace(values[j_up], values[j_low], n_population)]
         return thresholds
 
     def local_search(self, tour, start_node=4):
@@ -115,18 +117,15 @@ class BaseTSP:
     def fit(self):
         pass
 
-
-
 class MyTSP(BaseTSP):
-    def __init__(self, heuristic, k_head = 4, n_head = 5):
+    def __init__(self, heuristic, k_percent = 0.2):
         """
         Parameters:
-        - k_head (int): Number of top-k nodes to select during initialization.
-        - n_head (int): Number of heads to generate during initialization.
+        - n_init_paths (int): number of initial paths.
+        - (float) the percentage of initial vertices traversed
         """
         super().__init__(heuristic)
-        self.k_head = k_head
-        self.n_head = n_head
+        self.k_percent = k_percent
 
     def initialize(self):
         """
@@ -135,7 +134,9 @@ class MyTSP(BaseTSP):
         Returns:
         - List of heads (list): List of initial tour heads.
         """
-        thresholds = self.get_threshold(self.m, self.n_head)
+        # the number of initial vertices traversed
+        self.k_head = int(self.n*self.k_percent)
+        thresholds = self.get_threshold(self.m)
         heads = [self.search_path(fnext=self.next_with_threshold, k=self.k_head,
                                     init_tour=[0], threshold=t) for t in thresholds]
         heads = list(set(tuple(head) for head in heads))
@@ -155,19 +156,17 @@ class MyTSP(BaseTSP):
 
 class EvolutionaryTSP(BaseTSP):
     def __init__(self, heuristic,
-                    n_population=1000,
+                    n_population=100,
                     n_epoch=100,
                     tournament_size=4,
                     mutation_rate=0.5,
-                    crossover_rate=0.9,
-                    is_local_search=True):
+                    crossover_rate=0.9):
         super().__init__(heuristic)
         self.n_population = n_population
         self.n_epoch = n_epoch
         self.tournament_size = tournament_size
         self.mutation_rate = mutation_rate
         self.crossover_rate = crossover_rate
-        self.is_local_search = is_local_search
 
     def initialize(self):
         """
@@ -277,14 +276,12 @@ class EvolutionaryTSP(BaseTSP):
             if epoch % 10 == 0:
                 print(f"epoch {epoch}:", sorted(population)[0][0])
 
-        result = min(population)
-        if self.is_local_search: result = [self.heuristic(self.m, result[1]), result[1]]
-        return result
+        return min(population)
 
 
 class AntColonyTSP(BaseTSP):
     def __init__(self, heuristic, n_ant=50, n_epoch=100, alpha=1.0, beta=1.0,
-                        rho=0.5, del_tau=1.0, k=2, is_local_search=True):
+                        rho=0.5, del_tau=1.0, k=2, is_local_search=False):
         """
         Initialize the Ant Colony Optimization for TSP.
 
@@ -377,14 +374,16 @@ class AntColonyTSP(BaseTSP):
 
             # Update elite pheromones
             elitist = min(elitist_ants)
-            if self.is_local_search: elitist=self.local_search(tour=elitist[1], start_node=self.k+1)
-            elitist = [self.heuristic(self.m, elitist), elitist]
+            if self.is_local_search:
+                elitist=self.local_search(tour=elitist[1], start_node=self.k+1)
+                elitist = [self.heuristic(self.m, elitist), elitist]
             path = elitist[1]
             for i in range(self.n+1):
                 cur, next = path[i], path[i + 1]
                 pheromones[cur][next] += self.del_tau
             pheromones *= (1 - self.rho)
             elitist_epochs.append(elitist)
+
 
             if epoch % 10 == 0:
                 print(f"epoch {epoch}:", elitist[0])

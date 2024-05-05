@@ -30,7 +30,7 @@ def best_safe_cost(graph, start, end):
             new_cost = cost + (0 if graph[x][y] == 'f' else int(graph[x][y]))
             if (x, y) not in cost_so_far or new_cost < cost_so_far[(x, y)]:
                 cost_so_far[(x, y)] = new_cost
-                queue.append(((x, y), cost_so_far[(x, y)]))
+                queue.append(((x, y), new_cost))
 
     return cost_so_far[end] if end in cost_so_far else -1
 
