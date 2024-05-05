@@ -51,3 +51,21 @@ def calc_distance(m, tour):
     dists = m[tour[:-1], :][:, tour[1:]].diagonal()
     total_distance = np.sum(dists)
     return total_distance
+
+def create_weight_matrix(m, n):
+    m_discount = m.copy()
+    for i in range(n+2):
+        for j in range(n+2):
+            if m_discount[i][j] == 0:
+                continue
+            if i % 2 == 0 and j % 2 == 0: # nếu là chẵn
+                if i % 2 < n//2 and j % 2 < n//2: # chẵn nhỏ-chẵn nhỏ
+                    m_discount[i][j] -= m_discount[i][j]*0.15
+                else:
+                    m_discount[i][j] -= m_discount[i][j]*0.1
+            if i % 2 == 1 and j % 2 == 1: # nếu là lẻ
+                if i % 2 >= n//2 and j % 2 >= n//2: #lẻ lớn - lẻ lớn
+                    m_discount[i][j] -= m_discount[i][j]*0.15
+                else:
+                    m_discount[i][j] -= m_discount[i][j]*0.1
+    return m_discount
