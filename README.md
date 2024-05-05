@@ -10,6 +10,6 @@
 
 ## Liên Hệ
 
-Nếu bạn có bất kỳ câu hỏi hoặc đề xuất, hãy liên hệ với chúng tôi qua email: vanquang.tpa@email.com
+Nếu bạn có bất kỳ câu hỏi hoặc đề xuất, hãy liên hệ qua email: vanquang.tpa@email.com
 
 ^^
